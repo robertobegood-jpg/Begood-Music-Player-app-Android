@@ -37,6 +37,16 @@ object Preferencias {
         get() = prefs.getString("equalizador", null)
         set(v) = prefs.edit().putString("equalizador", v).apply()
 
+    /** Chave (gratuita) da API da Last.fm, usada pelo Genius. */
+    var chaveLastFm: String
+        get() = prefs.getString("chaveLastFm", null).orEmpty()
+        set(v) = prefs.edit().putString("chaveLastFm", v.trim()).apply()
+
+    /** Tamanho preferido da playlist Genius (25, 50, 75 ou 100). */
+    var tamanhoGenius: Int
+        get() = prefs.getInt("tamanhoGenius", 50)
+        set(v) = prefs.edit().putInt("tamanhoGenius", v).apply()
+
     var presetsEq: String?
         get() = prefs.getString("presetsEq", null)
         set(v) = prefs.edit().putString("presetsEq", v).apply()

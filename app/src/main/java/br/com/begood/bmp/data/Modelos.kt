@@ -22,6 +22,8 @@ data class Musica(
     val duracaoMs: Long,
     val caminho: String,
     val modificado: Long,
+    /** Quando o arquivo entrou no celular (segundos), para a playlist "Adicionadas recentemente". */
+    val adicionado: Long = 0L,
 ) {
     val uri: Uri get() = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
     val artistaDoAlbum: String get() = albumArtista.ifEmpty { artista }
@@ -69,6 +71,8 @@ class Biblioteca(musicasBrutas: List<Musica>) {
         if (c != 0) c else collator.compare(a.artista, b.artista)
     }
     val porId: Map<Long, Musica> = musicas.associateBy { it.id }
+    /** Pelo caminho do arquivo (minúsculo): as playlists guardam o caminho, que não muda ao reindexar. */
+    val porCaminho: Map<String, Musica> by lazy { musicas.associateBy { it.caminho.lowercase() } }
     val albuns: List<Album>
     val porChave: Map<String, Album>
     /** Artistas do álbum (o principal de cada álbum; convidados não entram aqui). */

@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
@@ -23,7 +26,9 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Lyrics
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,8 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import br.com.begood.bmp.BuildConfig
+import br.com.begood.bmp.data.Genius
 import br.com.begood.bmp.data.Preferencias
 import br.com.begood.bmp.data.Repositorio
 
@@ -156,14 +163,69 @@ fun TelaConfiguracoes(vm: AppViewModel) {
             }
         }
 
+        item { HorizontalDivider(Modifier.padding(vertical = 8.dp)); Titulo("Genius (playlists que combinam)") }
+        item { ConfigGenius(vm) }
+
         item {
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                 Text("Begood Music Player (B.M.P)", style = MaterialTheme.typography.titleSmall)
                 Text("Versão ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(4.dp))
-                Text("Dados de álbum e capas: iTunes e Deezer. Letras: LRCLIB.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Dados de álbum e capas: iTunes e Deezer. Letras: LRCLIB. Genius: Last.fm.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
+}
+
+/** Chave da Last.fm e download dos dados para o Genius funcionar sem internet. */
+@Composable
+private fun ConfigGenius(vm: AppViewModel) {
+    var chave by remember { mutableStateOf(Preferencias.chaveLastFm) }
+    var apagar by remember { mutableStateOf(false) }
+    // Recalcula o resumo quando termina um download ou depois de apagar.
+    var resumo by remember { mutableStateOf(Genius.resumo()) }
+    LaunchedEffect(vm.geniusProgresso, apagar) { if (vm.geniusProgresso == null) resumo = Genius.resumo() }
+    val abrir = LocalUriHandler.current
+    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "Igual ao Genius do iPod/iTunes: a Last.fm sabe quais músicas os ouvintes escutam juntas. " +
+                "O app guarda essas informações no celular e depois monta as playlists mesmo sem internet. " +
+                "Precisa de uma chave grátis da Last.fm: crie a conta, preencha \"Application name\" com qualquer nome " +
+                "e copie a \"API key\". Sem chave, o Genius usa só o gênero e a época.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedTextField(
+            value = chave, onValueChange = { chave = it.trim(); Preferencias.chaveLastFm = chave },
+            singleLine = true, label = { Text("Chave da API da Last.fm") },
+            leadingIcon = { Icon(Icons.Filled.Key, null) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        TextButton(onClick = { runCatching { abrir.openUri(Genius.SITE_CHAVE) } }) {
+            Icon(Icons.AutoMirrored.Filled.OpenInNew, null); Text(" Criar chave grátis na Last.fm")
+        }
+        Text("Guardado no celular: ${resumo.first} artista(s) e ${resumo.second} música(s).", style = MaterialTheme.typography.bodySmall)
+        val progresso = vm.geniusProgresso
+        if (progresso != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            CircularProgressIndicator(Modifier.size(22.dp))
+            Text(progresso, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            TextButton(onClick = { vm.pararGenius() }) { Text("Parar") }
+        } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Button(onClick = { vm.baixarGenius() }, enabled = chave.isNotBlank()) { Icon(Icons.Filled.CloudDownload, null); Text(" Baixar para usar offline") }
+            if (resumo.first + resumo.second > 0) TextButton(onClick = { apagar = true }) { Text("Apagar") }
+        }
+        Text(
+            "Baixa os artistas parecidos de todos os artistas da biblioteca e as músicas parecidas das favoritas e mais tocadas " +
+                "(uns 4 pedidos por segundo; biblioteca grande leva alguns minutos). As outras músicas são buscadas na hora " +
+                "em que você usa o Genius com internet, e ficam guardadas.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (apagar) AlertDialog(
+        onDismissRequest = { apagar = false },
+        title = { Text("Apagar dados do Genius?") },
+        text = { Text("Os dados baixados da Last.fm serão apagados. Dá para baixar de novo depois.") },
+        confirmButton = { TextButton(onClick = { Genius.apagarDados(); apagar = false }) { Text("Apagar") } },
+        dismissButton = { TextButton(onClick = { apagar = false }) { Text("Cancelar") } },
+    )
 }

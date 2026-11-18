@@ -12,6 +12,8 @@ Repositório: github.com/robertobegood-jpg/Begood-Music-Player-app-Android (priv
 - Editor de tags (uma música, álbum ou lote) com capa e atualização pela internet (iTunes/Deezer).
 - Bluetooth/carro: MediaLibraryService (AVRCP, Android Auto, retomar fila).
 - Artistas por "artista do álbum" e "artista da faixa" (convidados "feat.").
+- Playlists: manuais, automáticas (favoritas, mais tocadas, recentes, adicionadas), importar/exportar .m3u, no carro.
+- Genius: playlist que combina com uma música (Last.fm, guardado no celular para funcionar offline; sem chave usa gênero/época).
 
 ## Como trabalhar comigo
 - Responda e escreva tudo em **português do Brasil**, linguagem simples.

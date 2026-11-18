@@ -113,6 +113,7 @@ object Repositorio {
             MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM, MediaStore.Audio.Media.TRACK, MediaStore.Audio.Media.YEAR,
             MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.DATE_MODIFIED,
+            MediaStore.Audio.Media.DATE_ADDED,
         )
         val extras = if (Build.VERSION.SDK_INT >= 30) arrayOf(
             MediaStore.Audio.Media.ALBUM_ARTIST, MediaStore.Audio.Media.GENRE, MediaStore.Audio.Media.DISC_NUMBER,
@@ -129,6 +130,7 @@ object Repositorio {
             val iFx = idx(MediaStore.Audio.Media.TRACK); val iAno = idx(MediaStore.Audio.Media.YEAR)
             val iDur = idx(MediaStore.Audio.Media.DURATION); val iCam = idx(MediaStore.Audio.Media.DATA)
             val iMod = idx(MediaStore.Audio.Media.DATE_MODIFIED); val iAA = idx("album_artist")
+            val iAdd = idx(MediaStore.Audio.Media.DATE_ADDED)
             val iGen = idx("genre"); val iDisc = idx("disc_number")
             while (c.moveToNext()) {
                 val caminho = c.texto(iCam)
@@ -152,6 +154,7 @@ object Repositorio {
                         duracaoMs = if (iDur >= 0) c.getLong(iDur) else 0L,
                         caminho = caminho,
                         modificado = if (iMod >= 0) c.getLong(iMod) else 0L,
+                        adicionado = if (iAdd >= 0) c.getLong(iAdd) else 0L,
                     )
                 )
             }

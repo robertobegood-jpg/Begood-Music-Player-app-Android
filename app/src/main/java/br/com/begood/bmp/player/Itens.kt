@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import br.com.begood.bmp.data.Album
+import br.com.begood.bmp.data.Automatica
+import br.com.begood.bmp.data.Playlists
 import br.com.begood.bmp.data.Biblioteca
 import br.com.begood.bmp.data.Musica
 
@@ -14,6 +16,7 @@ import br.com.begood.bmp.data.Musica
  *  - "alb:{chave}"  álbum      "art:{nome}"  artista
  *  - "a:{chave}#{id}"  música dentro de um álbum (toca o álbum a partir dela)
  *  - "t:{id}"  música da lista "Todas" (toca todas a partir dela)
+ *  - "playlists", "pl:{id}"  playlists;  "p:{idPlaylist}#{id}"  música dentro de uma playlist
  *  - "{id}"  música (usado pelas telas do app)
  */
 object Itens {
@@ -21,6 +24,7 @@ object Itens {
     const val ALBUNS = "albuns"
     const val ARTISTAS = "artistas"
     const val MUSICAS = "musicas"
+    const val PLAYLISTS = "playlists"
 
     fun musica(m: Musica, id: String = m.id.toString()): MediaItem {
         val meta = MediaMetadata.Builder()
@@ -57,7 +61,7 @@ object Itens {
 
     /** Id da música dentro de qualquer um dos formatos acima. */
     fun idMusica(mediaId: String): Long? = when {
-        mediaId.startsWith("a:") -> mediaId.substringAfterLast('#').toLongOrNull()
+        mediaId.startsWith("a:") || mediaId.startsWith("p:") -> mediaId.substringAfterLast('#').toLongOrNull()
         mediaId.startsWith("t:") -> mediaId.removePrefix("t:").toLongOrNull()
         else -> mediaId.toLongOrNull()
     }
@@ -68,7 +72,10 @@ object Itens {
             pasta(ALBUNS, "Álbuns", tipo = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS),
             pasta(ARTISTAS, "Artistas", tipo = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS),
             pasta(MUSICAS, "Todas as músicas", tipo = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+            pasta(PLAYLISTS, "Playlists", tipo = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
         )
+        id == PLAYLISTS -> listasDoCarro(lib)
+        id.startsWith("pl:") -> id.removePrefix("pl:").let { pl -> Playlists.musicas(pl, lib).map { musica(it, "p:$pl#${it.id}") } }
         id == ALBUNS -> lib.albuns.map(::album)
         id == ARTISTAS -> lib.artistas.map { g ->
             pasta("art:${g.nome}", g.nome, "${g.albuns.size} álbum(ns)", g.albuns.firstOrNull()?.capa, MediaMetadata.MEDIA_TYPE_ARTIST)
@@ -79,9 +86,21 @@ object Itens {
         else -> emptyList()
     }
 
+    /** Playlists para o carro: as do usuário e as automáticas (só as que têm músicas). */
+    private fun listasDoCarro(lib: Biblioteca): List<MediaItem> {
+        val minhas = Playlists.lista.value.map { it.id to it.nome }
+        val automaticas = Automatica.entries.map { it.id to it.nome }
+        return (minhas + automaticas).mapNotNull { (pl, nome) ->
+            val musicas = Playlists.musicas(pl, lib)
+            if (musicas.isEmpty()) null
+            else pasta("pl:$pl", nome, "${musicas.size} música(s)", musicas.first().capa, MediaMetadata.MEDIA_TYPE_PLAYLIST)
+        }
+    }
+
     fun item(lib: Biblioteca, id: String): MediaItem? = when {
         id == RAIZ -> pasta(RAIZ, "Begood Music Player")
-        id == ALBUNS || id == ARTISTAS || id == MUSICAS -> filhos(lib, RAIZ).firstOrNull { it.mediaId == id }
+        id == ALBUNS || id == ARTISTAS || id == MUSICAS || id == PLAYLISTS -> filhos(lib, RAIZ).firstOrNull { it.mediaId == id }
+        id.startsWith("pl:") -> listasDoCarro(lib).firstOrNull { it.mediaId == id }
         id.startsWith("alb:") -> lib.porChave[id.removePrefix("alb:")]?.let(::album)
         id.startsWith("art:") -> lib.artista(id.removePrefix("art:"))?.let { pasta(id, it.nome, null, it.albuns.firstOrNull()?.capa, MediaMetadata.MEDIA_TYPE_ARTIST) }
         else -> idMusica(id)?.let { lib.porId[it] }?.let { musica(it, id) }
@@ -96,6 +115,7 @@ object Itens {
         val lista = when {
             id.startsWith("a:") -> lib.porChave[id.removePrefix("a:").substringBeforeLast('#')]?.musicas
             id.startsWith("t:") -> lib.musicas
+            id.startsWith("p:") -> Playlists.musicas(id.removePrefix("p:").substringBeforeLast('#'), lib)
             else -> null
         } ?: return null
         val i = lista.indexOfFirst { it.id == musicaId }.coerceAtLeast(0)

@@ -25,6 +25,7 @@ import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import br.com.begood.bmp.data.Capas
+import br.com.begood.bmp.data.Estatisticas
 import br.com.begood.bmp.data.Preferencias
 import br.com.begood.bmp.data.Repositorio
 import br.com.begood.bmp.ui.MainActivity
@@ -73,8 +74,11 @@ class PlayerService : MediaLibraryService() {
         player.addListener(object : Player.Listener {
             override fun onEvents(p: Player, events: Player.Events) {
                 if (events.containsAny(Player.EVENT_TIMELINE_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_IS_PLAYING_CHANGED)) salvarFila()
+                // Nova música (ou a mesma repetindo): ainda não contou como tocada.
+                if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) contou = false
             }
         })
+        principal.postDelayed(vigia, 5000)
 
         val abrirApp = PendingIntent.getActivity(
             this, 0,
@@ -87,6 +91,27 @@ class PlayerService : MediaLibraryService() {
             .build()
 
         observarBluetooth()
+    }
+
+    // ---------- Contagem de reproduções (playlists "Mais tocadas" e "Tocadas recentemente") ----------
+    private var contou = false
+    private val vigia = object : Runnable {
+        override fun run() {
+            contarSeTocou()
+            principal.postDelayed(this, 5000)
+        }
+    }
+
+    /** Conta a música como tocada depois de 30 s (ou da metade, se ela for mais curta). */
+    private fun contarSeTocou() {
+        if (contou || !player.isPlaying) return
+        val duracao = player.duration
+        val minimo = if (duracao > 0) minOf(30_000L, duracao / 2) else 30_000L
+        if (player.currentPosition < minimo) return
+        contou = true
+        val id = player.currentMediaItem?.mediaId?.let(Itens::idMusica) ?: return
+        val musica = Repositorio.biblioteca.value?.porId?.get(id) ?: return
+        Estatisticas.registrarReproducao(musica.caminho)
     }
 
     private fun salvarFila() {
@@ -205,6 +230,7 @@ class PlayerService : MediaLibraryService() {
 
     override fun onDestroy() {
         salvarFila()
+        principal.removeCallbacks(vigia)
         audio?.unregisterAudioDeviceCallback(dispositivos)
         sessao?.run {
             player.release()

@@ -33,6 +33,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
@@ -83,6 +86,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -105,6 +109,7 @@ import br.com.begood.bmp.data.Album
 import br.com.begood.bmp.data.Biblioteca
 import br.com.begood.bmp.data.Grupo
 import br.com.begood.bmp.data.Musica
+import br.com.begood.bmp.data.Playlists
 import br.com.begood.bmp.data.formatarDuracao
 import br.com.begood.bmp.player.Tocador
 import kotlinx.coroutines.delay
@@ -147,6 +152,7 @@ private val iconesAba = mapOf(
     Aba.Albuns to Icons.Filled.Album,
     Aba.Artistas to Icons.Filled.Person,
     Aba.Musicas to Icons.Filled.MusicNote,
+    Aba.Playlists to Icons.AutoMirrored.Filled.QueueMusic,
     Aba.Generos to Icons.Filled.Category,
     Aba.Buscar to Icons.Filled.Search,
 )
@@ -160,6 +166,7 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
     BackHandler(enabled = vm.selecionando && tela !is Tela.EditarTags) { vm.limparSelecao() }
     val snack = remember { SnackbarHostState() }
     LaunchedEffect(vm.aviso) { vm.aviso?.let { snack.showSnackbar(it); vm.aviso = null } }
+    vm.paraPlaylist?.let { ids -> JanelaAdicionarPlaylist(vm, ids) { vm.paraPlaylist = null } }
 
     if (tela == Tela.TocandoAgora) {
         Box(Modifier.fillMaxSize()) {
@@ -180,6 +187,8 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
                             is Tela.AlbumTela -> lib.porChave[tela.chave]?.titulo ?: ""
                             is Tela.ArtistaTela -> tela.nome
                             is Tela.GeneroTela -> tela.nome
+                            is Tela.PlaylistTela -> vm.playlists.firstOrNull { it.id == tela.id }?.nome ?: Playlists.nome(tela.id).orEmpty()
+                            is Tela.GeniusTela -> "Genius"
                             Tela.EqualizadorTela -> "Equalizador"
                             Tela.Configuracoes -> "Configurações"
                             is Tela.EditarTags -> when { tela.doAlbum -> "Editar álbum"; tela.ids.size > 1 -> "Editar ${tela.ids.size} músicas"; else -> "Editar tags" }
@@ -192,7 +201,7 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
                     if (tela != null) IconButton(onClick = { vm.voltar() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar") }
                 },
                 actions = {
-                    if (tela == null || tela is Tela.AlbumTela || tela is Tela.ArtistaTela || tela is Tela.GeneroTela) {
+                    if (tela == null || tela is Tela.AlbumTela || tela is Tela.ArtistaTela || tela is Tela.GeneroTela || tela is Tela.PlaylistTela || tela is Tela.GeniusTela) {
                         IconButton(onClick = { vm.abrir(Tela.EqualizadorTela) }) { Icon(Icons.Filled.Equalizer, "Equalizador") }
                     }
                     if (tela == null) IconButton(onClick = { vm.abrir(Tela.Configuracoes) }) { Icon(Icons.Filled.Settings, "Configurações") }
@@ -205,6 +214,8 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
                                     onClick = { menu = false; vm.abrir(Tela.EditarTags(a.musicas.map { it.id }, true)) })
                                 DropdownMenuItem(text = { Text("Selecionar faixas") }, leadingIcon = { Icon(Icons.Filled.Checklist, null) },
                                     onClick = { menu = false; vm.selecionarTodas(a.musicas.map { it.id }) })
+                                DropdownMenuItem(text = { Text("Adicionar à playlist") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
+                                    onClick = { menu = false; vm.paraPlaylist = a.musicas.map { it.id } })
                             }
                         }
                     }
@@ -214,13 +225,15 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
         bottomBar = {
             if (tela !is Tela.EditarTags) Column {
                 MiniPlayer(vm.tocador) { vm.abrir(Tela.TocandoAgora) }
-                if (tela == null || tela is Tela.AlbumTela || tela is Tela.ArtistaTela || tela is Tela.GeneroTela) NavigationBar {
+                if (tela == null || tela is Tela.AlbumTela || tela is Tela.ArtistaTela || tela is Tela.GeneroTela || tela is Tela.PlaylistTela || tela is Tela.GeniusTela) NavigationBar {
                     Aba.entries.forEach { a ->
+                        // São 6 abas: o nome aparece só na aba aberta, para caber em telas estreitas.
                         NavigationBarItem(
                             selected = tela == null && vm.aba == a,
                             onClick = { vm.limparSelecao(); vm.pilha.clear(); vm.aba = a },
-                            icon = { Icon(iconesAba.getValue(a), null) },
+                            icon = { Icon(iconesAba.getValue(a), a.titulo) },
                             label = { Text(a.titulo, maxLines = 1) },
+                            alwaysShowLabel = false,
                         )
                     }
                 }
@@ -232,6 +245,8 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
                 is Tela.AlbumTela -> lib.porChave[tela.chave]?.let { TelaAlbum(it, vm) } ?: SumiuVoltar(vm)
                 is Tela.ArtistaTela -> (if (tela.daFaixa) lib.artistaFaixa(tela.nome) else lib.artista(tela.nome))?.let { TelaGrupo(it, vm, tela.daFaixa) } ?: SumiuVoltar(vm)
                 is Tela.GeneroTela -> lib.genero(tela.nome)?.let { TelaGrupo(it, vm) } ?: SumiuVoltar(vm)
+                is Tela.PlaylistTela -> TelaPlaylist(vm, lib, tela.id)
+                is Tela.GeniusTela -> lib.porId[tela.id]?.let { TelaGenius(vm, lib, it) } ?: SumiuVoltar(vm)
                 Tela.EqualizadorTela -> TelaEqualizador()
                 Tela.Configuracoes -> TelaConfiguracoes(vm)
                 is Tela.EditarTags -> TelaTags(vm, tela.ids, tela.doAlbum)
@@ -239,6 +254,7 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
                     Aba.Albuns -> GradeAlbuns(lib.albuns, vm)
                     Aba.Artistas -> ListaArtistas(vm, lib)
                     Aba.Musicas -> ListaMusicas(lib.musicas, vm)
+                    Aba.Playlists -> AbaPlaylists(vm, lib)
                     Aba.Generos -> ListaGrupos(lib.generos) { vm.abrir(Tela.GeneroTela(it.nome)) }
                     Aba.Buscar -> TelaBusca(vm, lib)
                 }
@@ -249,7 +265,7 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
 
 /** O álbum/artista mudou de nome (ex.: depois de editar as tags): volta para a lista. */
 @Composable
-private fun SumiuVoltar(vm: AppViewModel) {
+internal fun SumiuVoltar(vm: AppViewModel) {
     LaunchedEffect(Unit) { vm.voltar() }
 }
 
@@ -316,7 +332,7 @@ private fun ListaMusicas(musicas: List<Musica>, vm: AppViewModel) {
 }
 
 @Composable
-private fun BotoesTocar(musicas: List<Musica>, tocador: Tocador) {
+internal fun BotoesTocar(musicas: List<Musica>, tocador: Tocador) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Button(onClick = { tocador.tocar(musicas) }) {
             Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text("Tocar")
@@ -358,8 +374,11 @@ private fun LazyListScope.faixas(musicas: List<Musica>, vm: AppViewModel, mostra
 @OptIn(ExperimentalFoundationApi::class)
 /** Uma música na lista, com o menu ⋮ (tocar a seguir, fila, editar tags, ir para o álbum). */
 @Composable
-private fun LinhaMusica(
-    m: Musica, vm: AppViewModel, numero: String? = null, capa: Boolean = false, mostrarArtista: Boolean = true, onClick: () -> Unit,
+internal fun LinhaMusica(
+    m: Musica, vm: AppViewModel, numero: String? = null, capa: Boolean = false, mostrarArtista: Boolean = true,
+    /** Itens a mais no menu ⋮ (ex.: "Remover da playlist"). Recebe a função que fecha o menu. */
+    menuExtra: (@Composable (fechar: () -> Unit) -> Unit)? = null,
+    onClick: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
     val tocandoEsta = vm.tocador.atual?.idMusica == m.id
@@ -392,6 +411,15 @@ private fun LinhaMusica(
                             onClick = { menu = false; vm.tocador.tocarASeguir(m); vm.aviso = "\"${m.titulo}\" toca a seguir." })
                         DropdownMenuItem(text = { Text("Adicionar à fila") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
                             onClick = { menu = false; vm.tocador.adicionarNaFila(m); vm.aviso = "Adicionada à fila." })
+                        DropdownMenuItem(text = { Text("Adicionar à playlist") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
+                            onClick = { menu = false; vm.paraPlaylist = listOf(m.id) })
+                        DropdownMenuItem(text = { Text("Playlist Genius") }, leadingIcon = { Icon(Icons.Filled.AutoAwesome, null) },
+                            onClick = { menu = false; vm.abrir(Tela.GeniusTela(m.id)) })
+                        val favorita = remember(vm.versaoEstatisticas, m.caminho) { vm.ehFavorita(m) }
+                        DropdownMenuItem(text = { Text(if (favorita) "Tirar das favoritas" else "Favoritar") },
+                            leadingIcon = { Icon(if (favorita) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, null) },
+                            onClick = { menu = false; vm.alternarFavorita(m) })
+                        menuExtra?.invoke { menu = false }
                         DropdownMenuItem(text = { Text("Editar tags") }, leadingIcon = { Icon(Icons.Filled.Edit, null) },
                             onClick = { menu = false; vm.abrir(Tela.EditarTags(listOf(m.id), false)) })
                         vm.biblioteca?.albumDe(m)?.let { a ->
@@ -426,6 +454,7 @@ private fun BarraSelecao(vm: AppViewModel) {
         title = { Text("${vm.selecao.size} selecionada(s)") },
         navigationIcon = { IconButton(onClick = { vm.limparSelecao() }) { Icon(Icons.Filled.Close, "Cancelar seleção") } },
         actions = {
+            IconButton(onClick = { vm.paraPlaylist = vm.selecao.toList() }) { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Adicionar à playlist") }
             IconButton(onClick = { vm.abrir(Tela.EditarTags(vm.selecao.toList(), false)) }) { Icon(Icons.Filled.Edit, "Editar tags em lote") }
             IconButton(onClick = { vm.selecionarTodas(vm.listaAtual) }) { Icon(Icons.Filled.SelectAll, "Marcar todas") }
             Box {
@@ -445,6 +474,8 @@ private fun BarraSelecao(vm: AppViewModel) {
                             vm.musicasSelecionadas().forEach { vm.tocador.adicionarNaFila(it) }
                             vm.aviso = "${vm.selecao.size} música(s) adicionadas à fila."; vm.limparSelecao()
                         })
+                    DropdownMenuItem(text = { Text("Adicionar à playlist") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
+                        onClick = { menu = false; vm.paraPlaylist = vm.selecao.toList() })
                     DropdownMenuItem(text = { Text("Editar tags em lote") }, leadingIcon = { Icon(Icons.Filled.Edit, null) },
                         onClick = { menu = false; vm.abrir(Tela.EditarTags(vm.selecao.toList(), false)) })
                 }
@@ -610,6 +641,10 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
                 var menu by remember { mutableStateOf(false) }
                 IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "Mais opções") }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(text = { Text("Adicionar à playlist") }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
+                        onClick = { menu = false; vm.paraPlaylist = listOf(musica.id) })
+                    DropdownMenuItem(text = { Text("Playlist Genius") }, leadingIcon = { Icon(Icons.Filled.AutoAwesome, null) },
+                        onClick = { menu = false; vm.pilha.clear(); vm.abrir(Tela.GeniusTela(musica.id)) })
                     DropdownMenuItem(text = { Text("Editar tags") }, leadingIcon = { Icon(Icons.Filled.Edit, null) },
                         onClick = { menu = false; vm.abrir(Tela.EditarTags(listOf(musica.id), false)) })
                     vm.biblioteca?.albumDe(musica)?.let { a ->
@@ -631,7 +666,12 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
                 }
             }
             "fila" -> {
-                Text("Fila (${tocador.fila.size})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Fila (${tocador.fila.size})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(8.dp).weight(1f))
+                    TextButton(onClick = { vm.paraPlaylist = tocador.fila.mapNotNull { it.idMusica } }, enabled = tocador.fila.isNotEmpty()) {
+                        Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null); Text(" Salvar como playlist")
+                    }
+                }
                 val estado = rememberLazyListState(initialFirstVisibleItemIndex = tocador.indiceAtual.coerceAtLeast(0))
                 LazyColumn(state = estado, modifier = Modifier.weight(1f)) {
                     itemsIndexed(tocador.fila) { i, item ->
@@ -653,7 +693,17 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
                     Capa(atual.capa, Modifier.fillMaxWidth().aspectRatio(1f), forma = RoundedCornerShape(12.dp), tamanhoIcone = 120.dp)
                 }
                 Spacer(Modifier.height(16.dp))
-                Text(atual.titulo, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(atual.titulo, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f))
+                    if (musica != null) {
+                        val favorita = remember(vm.versaoEstatisticas, musica.caminho) { vm.ehFavorita(musica) }
+                        IconButton(onClick = { vm.alternarFavorita(musica) }) {
+                            Icon(if (favorita) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, if (favorita) "Tirar das favoritas" else "Favoritar",
+                                tint = if (favorita) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp))
+                        }
+                    }
+                }
                 Text(
                     listOf(atual.artista, atual.album).filter { it.isNotEmpty() }.joinToString(" · "),
                     style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis,
