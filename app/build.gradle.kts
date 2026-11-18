@@ -1,3 +1,5 @@
+import java.io.File
+import java.security.KeyStore
 import java.util.Properties
 
 plugins {
@@ -5,6 +7,24 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+// Assinatura: vem de variáveis de ambiente (GitHub Actions) ou de keystore.properties local.
+// Igual aos outros apps: basta KEYSTORE_BASE64 + KEYSTORE_PASSWORD no GitHub (mesma chave de todos os apps).
+// No PC: arquivo em app/assinatura/bmp.jks (ou KEYSTORE_FILE=...) e KEYSTORE_PASSWORD=... no keystore.properties.
+// A chave e a senha NUNCA vão para o repositório.
+val assinatura = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun segredo(nome: String): String? =
+    System.getenv(nome)?.takeIf { it.isNotBlank() } ?: assinatura.getProperty(nome)?.takeIf { it.isNotBlank() }
+
+// O alias é lido do próprio arquivo e a senha da chave é a mesma do arquivo (KEY_ALIAS e KEY_PASSWORD são opcionais).
+fun primeiroAlias(arquivo: File, senha: String): String? = runCatching {
+    val ks = KeyStore.getInstance(KeyStore.getDefaultType())
+    arquivo.inputStream().use { ks.load(it, senha.toCharArray()) }
+    ks.aliases().toList().firstOrNull()
+}.getOrNull()
 
 android {
     namespace = "br.com.begood.bmp"
@@ -18,27 +38,17 @@ android {
         versionName = "1.0"
     }
 
-    // Assinatura oficial opcional. A chave NÃO fica no repositório:
-    // coloque o arquivo em app/assinatura/bmp.jks e a senha em keystore.properties (senha=...),
-    // ambos ignorados pelo git. Sem a chave, o APK sai com a chave de debug padrão.
-    val chave = file("assinatura/bmp.jks")
-    val local = Properties().apply {
-        val arq = rootProject.file("keystore.properties")
-        if (arq.exists()) arq.inputStream().use { load(it) }
-    }
-    fun segredo(env: String, prop: String): String? =
-        System.getenv(env)?.takeIf { it.isNotBlank() } ?: local.getProperty(prop)?.takeIf { it.isNotBlank() }
-
-    val senhaChave = segredo("KEYSTORE_PASSWORD", "senha")
-    val temAssinatura = chave.exists() && senhaChave != null
-
     signingConfigs {
-        if (temAssinatura) {
+        val arquivo = (segredo("KEYSTORE_FILE") ?: "assinatura/bmp.jks").let { file(it) }
+        val senha = segredo("KEYSTORE_PASSWORD")
+        if (arquivo.exists() && senha != null) {
+            val alias = segredo("KEY_ALIAS") ?: primeiroAlias(arquivo, senha)
+                ?: throw GradleException("Não deu para abrir a chave de assinatura: confira KEYSTORE_PASSWORD.")
             create("oficial") {
-                storeFile = chave
-                storePassword = senhaChave
-                keyAlias = segredo("KEY_ALIAS", "alias") ?: "androiddebugkey"
-                keyPassword = segredo("KEY_PASSWORD", "senhaAlias") ?: senhaChave
+                storeFile = arquivo
+                storePassword = senha
+                keyAlias = alias
+                keyPassword = segredo("KEY_PASSWORD") ?: senha
             }
         }
     }
@@ -48,10 +58,11 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (temAssinatura) signingConfigs.getByName("oficial") else signingConfigs.getByName("debug")
+            // Sem a chave oficial, sai com a chave de debug (dá para instalar, mas não atualiza o APK oficial).
+            signingConfig = signingConfigs.findByName("oficial") ?: signingConfigs.getByName("debug")
         }
         debug {
-            if (temAssinatura) signingConfig = signingConfigs.getByName("oficial")
+            signingConfigs.findByName("oficial")?.let { signingConfig = it }
         }
     }
 
