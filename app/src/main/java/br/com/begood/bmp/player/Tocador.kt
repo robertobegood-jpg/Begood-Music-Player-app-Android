@@ -41,7 +41,17 @@ class Tocador(context: Context) {
     var erro by mutableStateOf<String?>(null); private set
 
     val posicao: Long get() = controle?.currentPosition ?: 0L
-    val duracao: Long get() = controle?.duration?.takeIf { it > 0 } ?: 0L
+    /**
+     * Duração da música atual. Se o player ainda não sabe (música carregando ou MP3 sem índice de tempo),
+     * usa a duração que o Android leu do arquivo. Nunca fica menor que a posição atual.
+     */
+    val duracao: Long get() {
+        val c = controle ?: return 0L
+        val doPlayer = c.duration.takeIf { it > 0 }
+        val doArquivo = c.currentMediaItem?.mediaMetadata?.durationMs?.takeIf { it > 0 }
+        val d = doPlayer ?: doArquivo ?: return 0L
+        return maxOf(d, c.currentPosition)
+    }
 
     private val ouvinte = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) =

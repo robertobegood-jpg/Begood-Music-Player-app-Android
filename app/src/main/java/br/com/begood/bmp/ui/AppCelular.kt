@@ -706,6 +706,9 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
     val tocador = vm.tocador
     val atual = tocador.atual
     var posicao by remember { mutableLongStateOf(0L) }
+    // A duração também é atualizada a cada meio segundo: quando a tela abre com a música ainda carregando,
+    // ela ainda não é conhecida (antes ficava "0:00" e a barra travada até trocar de música).
+    var duracao by remember { mutableLongStateOf(tocador.duracao) }
     var arrastando by remember { mutableStateOf<Float?>(null) }
     var modo by remember { mutableStateOf("capa") } // capa, fila ou letra
     var saida by remember { mutableStateOf("") }
@@ -713,11 +716,11 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
         var n = 0
         while (true) {
             posicao = tocador.posicao
+            duracao = tocador.duracao
             if (n++ % 6 == 0) saida = tocador.saidaAtual()
             delay(500)
         }
     }
-    val duracao = tocador.duracao
     val musica = atual?.idMusica?.let { vm.biblioteca?.porId?.get(it) }
 
     Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
@@ -778,7 +781,7 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
         // Barra de tempo, controles e por onde o som está saindo.
         val controles = @Composable {
             Slider(
-                value = arrastando ?: if (duracao > 0) posicao.toFloat() / duracao else 0f,
+                value = arrastando ?: if (duracao > 0) (posicao.toFloat() / duracao).coerceIn(0f, 1f) else 0f,
                 onValueChange = { arrastando = it },
                 onValueChangeFinished = { arrastando?.let { tocador.irPara((it * duracao).toLong()) }; arrastando = null },
                 enabled = duracao > 0,
