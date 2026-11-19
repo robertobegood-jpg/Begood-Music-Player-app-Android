@@ -48,6 +48,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -162,13 +163,13 @@ fun PainelLetra(vm: AppViewModel, modifier: Modifier = Modifier, cabecalho: @Com
                 ) {
                     Text(e.mensagem ?: "Esta música não tem letra.", style = aviso)
                     if (musica != null) {
-                        FilledTonalButton(onClick = { buscarOnline(musica) }) {
+                        FilledTonalButton(shape = RectangleShape, onClick = { buscarOnline(musica) }) {
                             Icon(Icons.Filled.TravelExplore, null); Text("  Buscar na internet")
                         }
-                        OutlinedButton(onClick = { pesquisarNoGoogle(ctx, musica) }) {
+                        OutlinedButton(shape = RectangleShape, onClick = { pesquisarNoGoogle(ctx, musica) }) {
                             Icon(Icons.Filled.Search, null); Text("  Pesquisar no Google")
                         }
-                        OutlinedButton(onClick = { editando = "" }) {
+                        OutlinedButton(shape = RectangleShape, onClick = { editando = "" }) {
                             Icon(Icons.Filled.ContentPaste, null); Text("  Colar ou escrever a letra")
                         }
                         Text("Dica: no Google, copie a letra e volte aqui para colar.", style = MaterialTheme.typography.bodySmall, color = Color(0xFF8A8F9C))
@@ -208,7 +209,7 @@ private fun EditorLetra(inicial: String, onCancelar: () -> Unit, onSalvar: (Stri
         title = { Text("Letra") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { area.getText()?.text?.let { texto = it } }) {
+                TextButton(shape = RectangleShape, onClick = { area.getText()?.text?.let { texto = it } }) {
                     Icon(Icons.Filled.ContentPaste, null); Text("  Colar da área de transferência")
                 }
                 OutlinedTextField(
@@ -219,8 +220,8 @@ private fun EditorLetra(inicial: String, onCancelar: () -> Unit, onSalvar: (Stri
                 Text("Fica salva no app. Para gravar dentro do arquivo, use \"Gravar na música\" depois.", style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { TextButton(onClick = { onSalvar(texto) }) { Text("Salvar") } },
-        dismissButton = { TextButton(onClick = onCancelar) { Text("Cancelar") } },
+        confirmButton = { TextButton(shape = RectangleShape, onClick = { onSalvar(texto) }) { Text("Salvar") } },
+        dismissButton = { TextButton(shape = RectangleShape, onClick = onCancelar) { Text("Cancelar") } },
     )
 }
 

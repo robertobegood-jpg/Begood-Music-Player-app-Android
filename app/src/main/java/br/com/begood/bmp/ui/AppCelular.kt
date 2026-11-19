@@ -98,13 +98,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import br.com.begood.bmp.data.Album
 import br.com.begood.bmp.data.Biblioteca
@@ -140,7 +143,7 @@ private fun TelaPermissao(pedir: () -> Unit) {
             Icon(Icons.Filled.LibraryMusic, null, tint = Ambar, modifier = Modifier.size(80.dp))
             Text("Begood Music Player", style = MaterialTheme.typography.headlineMedium)
             Text("Para tocar suas músicas, o app precisa de permissão para ler os arquivos de áudio do celular.", textAlign = TextAlign.Center)
-            Button(onClick = pedir) { Text("Permitir acesso às músicas") }
+            Button(shape = RectangleShape, onClick = pedir) { Text("Permitir acesso às músicas") }
             Text(
                 "Se você já negou antes, abra Configurações do Android > Apps > Begood Music Player > Permissões > Músicas e áudio.",
                 textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -243,7 +246,7 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
                             selected = tela == null && vm.aba == a,
                             onClick = { vm.limparSelecao(); vm.pilha.clear(); vm.aba = a },
                             icon = { Icon(iconesAba.getValue(a), a.titulo) },
-                            label = { Text(a.titulo, maxLines = 1) },
+                            label = { RotuloAba(a.titulo) },
                             alwaysShowLabel = false,
                         )
                     }
@@ -293,8 +296,8 @@ private fun BibliotecaVazia(vm: AppViewModel) {
             style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center,
         )
         Text("Escolha as pastas onde estão suas músicas ou escaneie de novo.", textAlign = TextAlign.Center)
-        Button(onClick = { vm.abrir(Tela.Configuracoes) }) { Text("Escolher pastas") }
-        FilledTonalButton(onClick = { vm.escanear() }, enabled = !vm.escaneando) { Text(if (vm.escaneando) "Escaneando…" else "Escanear agora") }
+        Button(shape = RectangleShape, onClick = { vm.abrir(Tela.Configuracoes) }) { Text("Escolher pastas") }
+        FilledTonalButton(shape = RectangleShape, onClick = { vm.escanear() }, enabled = !vm.escaneando) { Text(if (vm.escaneando) "Escaneando…" else "Escanear agora") }
     }
 }
 
@@ -335,8 +338,8 @@ private fun ListaMusicas(musicas: List<Musica>, vm: AppViewModel) {
     SideEffect { vm.listaAtual = musicas.map { it.id } }
     LazyColumn(Modifier.fillMaxSize()) {
         item {
-            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${musicas.size} músicas", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${musicas.size} músicas", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 BotoesTocar(musicas, vm.tocador)
             }
         }
@@ -347,15 +350,24 @@ private fun ListaMusicas(musicas: List<Musica>, vm: AppViewModel) {
 }
 
 @Composable
-internal fun BotoesTocar(musicas: List<Musica>, tocador: Tocador) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { tocador.tocar(musicas) }) {
-            Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text("Tocar")
+internal fun BotoesTocar(musicas: List<Musica>, tocador: Tocador, modifier: Modifier = Modifier) {
+    // Dois botões do mesmo tamanho dividindo a largura; o texto nunca quebra linha.
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(shape = RectangleShape, onClick = { tocador.tocar(musicas) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 8.dp)) {
+            RotuloBotao(Icons.Filled.PlayArrow, "Tocar")
         }
-        FilledTonalButton(onClick = { tocador.tocar(musicas, embaralhar = true) }) {
-            Icon(Icons.Filled.Shuffle, null); Spacer(Modifier.width(6.dp)); Text("Aleatório")
+        FilledTonalButton(shape = RectangleShape, onClick = { tocador.tocar(musicas, embaralhar = true) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 8.dp)) {
+            RotuloBotao(Icons.Filled.Shuffle, "Aleatório")
         }
     }
+}
+
+/** Ícone + texto de botão alinhados, numa linha só (encurta com "…" se não couber). */
+@Composable
+internal fun RotuloBotao(icone: ImageVector, texto: String) {
+    Icon(icone, null, Modifier.size(18.dp))
+    Spacer(Modifier.width(8.dp))
+    Text(texto, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable
@@ -542,10 +554,10 @@ private fun ListaArtistas(vm: AppViewModel, lib: Biblioteca) {
     val daFaixa = vm.artistasDaFaixa
     Column(Modifier.fillMaxSize()) {
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-            SegmentedButton(selected = !daFaixa, onClick = { vm.mudarModoArtistas(false) }, shape = SegmentedButtonDefaults.itemShape(0, 2)) {
+            SegmentedButton(selected = !daFaixa, onClick = { vm.mudarModoArtistas(false) }, shape = RectangleShape) {
                 Text("Artista do álbum (${lib.artistas.size})", maxLines = 1)
             }
-            SegmentedButton(selected = daFaixa, onClick = { vm.mudarModoArtistas(true) }, shape = SegmentedButtonDefaults.itemShape(1, 2)) {
+            SegmentedButton(selected = daFaixa, onClick = { vm.mudarModoArtistas(true) }, shape = RectangleShape) {
                 Text("Artista da faixa (${lib.artistasFaixa.size})", maxLines = 1)
             }
         }
@@ -644,7 +656,7 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
     Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onFechar) { Icon(Icons.Filled.KeyboardArrowDown, "Fechar") }
-            Text("Tocando agora", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text("Tocando agora", style = MaterialTheme.typography.titleMedium, fontSize = tamanhoLimitado(16f), maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             IconButton(onClick = { modo = if (modo == "letra") "capa" else "letra" }) {
                 Icon(Icons.Filled.Lyrics, "Letra", tint = if (modo == "letra") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
             }
@@ -683,7 +695,7 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
             "fila" -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Fila (${tocador.fila.size})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(8.dp).weight(1f))
-                    TextButton(onClick = { vm.paraPlaylist = tocador.fila.mapNotNull { it.idMusica } }, enabled = tocador.fila.isNotEmpty()) {
+                    TextButton(shape = RectangleShape, onClick = { vm.paraPlaylist = tocador.fila.mapNotNull { it.idMusica } }, enabled = tocador.fila.isNotEmpty()) {
                         Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null); Text(" Salvar como playlist")
                     }
                 }
@@ -755,7 +767,7 @@ private fun Controles(tocador: Tocador) {
     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
         BotaoIcone(Icons.Filled.Shuffle, "Aleatório", ativo = tocador.aleatorio) { tocador.alternarAleatorio() }
         BotaoIcone(Icons.Filled.SkipPrevious, "Anterior") { tocador.anterior() }
-        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(68.dp)) {
+        Surface(shape = RectangleShape, color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(68.dp)) {
             IconButton(onClick = { tocador.tocarPausar() }) {
                 Icon(if (tocador.tocando) Icons.Filled.Pause else Icons.Filled.PlayArrow, if (tocador.tocando) "Pausar" else "Tocar",
                     tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(40.dp))
@@ -774,4 +786,20 @@ private fun BotaoIcone(icone: ImageVector, descricao: String, ativo: Boolean = f
     IconButton(onClick = onClick, modifier = Modifier.size(52.dp)) {
         Icon(icone, descricao, modifier = Modifier.size(30.dp), tint = if (ativo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
     }
+}
+
+/**
+ * Nome da aba embaixo do ícone. Com a fonte do sistema muito grande, "Playlists" não cabe no espaço da aba:
+ * o rótulo acompanha o aumento só até 115% (o resto da tela continua crescendo normalmente).
+ */
+@Composable
+private fun RotuloAba(texto: String) {
+    Text(texto, maxLines = 1, softWrap = false, fontSize = tamanhoLimitado(11f), letterSpacing = 0.sp, style = MaterialTheme.typography.labelSmall)
+}
+
+/** Tamanho de texto que acompanha a fonte do sistema só até 115% (para textos em espaços apertados). */
+@Composable
+private fun tamanhoLimitado(base: Float): androidx.compose.ui.unit.TextUnit {
+    val escala = LocalDensity.current.fontScale
+    return (base * minOf(escala, 1.15f) / escala).sp
 }

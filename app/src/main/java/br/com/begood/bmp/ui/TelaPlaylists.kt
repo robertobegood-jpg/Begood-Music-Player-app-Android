@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -64,6 +65,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -100,9 +102,13 @@ fun AbaPlaylists(vm: AppViewModel, lib: Biblioteca) {
 
     LazyColumn(Modifier.fillMaxSize()) {
         item {
-            Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { criando = true }) { Icon(Icons.Filled.Add, null); Text(" Nova playlist") }
-                OutlinedButton(onClick = { runCatching { importar.launch(arrayOf("*/*")) } }) { Icon(Icons.Filled.FileDownload, null); Text(" Importar .m3u") }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(shape = RectangleShape, onClick = { criando = true }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    RotuloBotao(Icons.Filled.Add, "Nova playlist")
+                }
+                OutlinedButton(shape = RectangleShape, onClick = { runCatching { importar.launch(arrayOf("*/*")) } }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    RotuloBotao(Icons.Filled.FileDownload, "Importar .m3u")
+                }
             }
         }
         item { Titulo("Genius") }
@@ -223,12 +229,12 @@ fun TelaPlaylist(vm: AppViewModel, lib: Biblioteca, id: String) {
             }
             if (organizar) Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Use as setas para mudar a ordem e o X para tirar.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                Button(onClick = { organizar = false }) { Text("Concluir") }
+                Button(shape = RectangleShape, onClick = { organizar = false }) { Text("Concluir") }
             } else if (musicas.isNotEmpty()) Box(Modifier.padding(horizontal = 16.dp)) { BotoesTocar(musicas, vm.tocador) }
             if (ausentes > 0 && p != null) Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("$ausentes música(s) não estão no celular agora (arquivo movido, apagado ou cartão SD fora).",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
-                TextButton(onClick = { Playlists.tirarAusentes(id, lib) }) { Text("Tirar da lista") }
+                TextButton(shape = RectangleShape, onClick = { Playlists.tirarAusentes(id, lib) }) { Text("Tirar da lista") }
             }
             if (musicas.isEmpty()) Text(
                 when (auto) {
@@ -270,8 +276,8 @@ fun TelaPlaylist(vm: AppViewModel, lib: Biblioteca, id: String) {
         onDismissRequest = { apagar = false },
         title = { Text("Apagar playlist?") },
         text = { Text("A playlist \"${p.nome}\" será apagada. As músicas continuam no celular.") },
-        confirmButton = { TextButton(onClick = { apagar = false; vm.apagarPlaylist(id) }) { Text("Apagar") } },
-        dismissButton = { TextButton(onClick = { apagar = false }) { Text("Cancelar") } },
+        confirmButton = { TextButton(shape = RectangleShape, onClick = { apagar = false; vm.apagarPlaylist(id) }) { Text("Apagar") } },
+        dismissButton = { TextButton(shape = RectangleShape, onClick = { apagar = false }) { Text("Cancelar") } },
     )
 }
 
@@ -308,7 +314,7 @@ fun TelaGenius(vm: AppViewModel, lib: Biblioteca, semente: Musica) {
                 val opcoes = listOf(25, 50, 75, 100)
                 opcoes.forEachIndexed { i, n ->
                     SegmentedButton(selected = tamanho == n, onClick = { tamanho = n; Preferencias.tamanhoGenius = n },
-                        shape = SegmentedButtonDefaults.itemShape(i, opcoes.size)) { Text("$n") }
+                        shape = RectangleShape) { Text("$n") }
                 }
             }
             if (r == null) Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -372,9 +378,9 @@ fun JanelaAdicionarPlaylist(vm: AppViewModel, ids: List<Long>, fechar: () -> Uni
             }
         },
         confirmButton = {
-            if (nova) TextButton(onClick = { vm.criarPlaylist(nome, ids); fechar() }, enabled = nome.isNotBlank()) { Text("Criar") }
+            if (nova) TextButton(shape = RectangleShape, onClick = { vm.criarPlaylist(nome, ids); fechar() }, enabled = nome.isNotBlank()) { Text("Criar") }
         },
-        dismissButton = { TextButton(onClick = fechar) { Text("Cancelar") } },
+        dismissButton = { TextButton(shape = RectangleShape, onClick = fechar) { Text("Cancelar") } },
     )
 }
 
@@ -385,7 +391,7 @@ fun JanelaNome(titulo: String, inicial: String, botao: String, fechar: () -> Uni
         onDismissRequest = fechar,
         title = { Text(titulo) },
         text = { OutlinedTextField(nome, { nome = it }, singleLine = true, label = { Text("Nome") }, modifier = Modifier.fillMaxWidth()) },
-        confirmButton = { TextButton(onClick = { fechar(); ok(nome.trim()) }, enabled = nome.isNotBlank()) { Text(botao) } },
-        dismissButton = { TextButton(onClick = fechar) { Text("Cancelar") } },
+        confirmButton = { TextButton(shape = RectangleShape, onClick = { fechar(); ok(nome.trim()) }, enabled = nome.isNotBlank()) { Text(botao) } },
+        dismissButton = { TextButton(shape = RectangleShape, onClick = fechar) { Text("Cancelar") } },
     )
 }

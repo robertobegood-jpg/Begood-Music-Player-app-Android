@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -84,19 +85,19 @@ fun TelaEqualizador() {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(Equalizador.presetsFixos + meus, key = { (if (it.doUsuario) "u:" else "f:") + it.nome }) { p ->
                     FilterChip(
-                        selected = p.config.bandas == cfg.bandas && p.config.preamp == cfg.preamp,
+                        shape = RectangleShape, selected = p.config.bandas == cfg.bandas && p.config.preamp == cfg.preamp,
                         onClick = { mudar(p.config.copy(ligado = true)) },
                         label = { Text(if (p.doUsuario) "★ ${p.nome}" else p.nome) },
                     )
                 }
-                item { OutlinedButton(onClick = { salvando = true }) { Text("Salvar como…") } }
+                item { OutlinedButton(shape = RectangleShape, onClick = { salvando = true }) { Text("Salvar como…") } }
             }
             if (meus.isNotEmpty()) Text(
                 "Para apagar um preset seu, escolha-o e toque em \"Apagar preset\" abaixo.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             meus.firstOrNull { it.config.bandas == cfg.bandas && it.config.preamp == cfg.preamp }?.let { p ->
-                TextButton(onClick = { Equalizador.apagarPreset(p.nome) }) { Icon(Icons.Filled.Delete, null); Text(" Apagar preset \"${p.nome}\"") }
+                TextButton(shape = RectangleShape, onClick = { Equalizador.apagarPreset(p.nome) }) { Icon(Icons.Filled.Delete, null); Text(" Apagar preset \"${p.nome}\"") }
             }
         }
         item {
@@ -105,7 +106,7 @@ fun TelaEqualizador() {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Pré-amplificação", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                         Text(textoDb(cfg.preamp), color = MaterialTheme.colorScheme.primary)
-                        TextButton(onClick = { mudar(cfg.copy(preamp = Equalizador.preampSugerido(cfg))) }) { Text("Auto") }
+                        TextButton(shape = RectangleShape, onClick = { mudar(cfg.copy(preamp = Equalizador.preampSugerido(cfg))) }) { Text("Auto") }
                     }
                     Slider(value = cfg.preamp, onValueChange = { mudar(cfg.copy(preamp = (it * 2).toInt() / 2f)) }, valueRange = -Equalizador.GANHO_MAX..6f)
                     Text("Se o som distorcer com os reforços, toque em Auto.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -122,10 +123,10 @@ fun TelaEqualizador() {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
-                    onClick = { mudar(cfg.copy(bandas = cfg.bandas + Banda(TipoFiltro.Pico, 1000f, 0f, 1f))) },
+                    shape = RectangleShape, onClick = { mudar(cfg.copy(bandas = cfg.bandas + Banda(TipoFiltro.Pico, 1000f, 0f, 1f))) },
                     enabled = cfg.bandas.size < Equalizador.MAX_BANDAS,
                 ) { Icon(Icons.Filled.Add, null); Text(" Adicionar banda") }
-                TextButton(onClick = { mudar(Equalizador.presetsFixos[0].config.copy(ligado = cfg.ligado)) }) { Text("Zerar") }
+                TextButton(shape = RectangleShape, onClick = { mudar(Equalizador.presetsFixos[0].config.copy(ligado = cfg.ligado)) }) { Text("Zerar") }
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -137,8 +138,8 @@ fun TelaEqualizador() {
             onDismissRequest = { salvando = false },
             title = { Text("Salvar preset") },
             text = { OutlinedTextField(nome, { nome = it.take(24) }, label = { Text("Nome") }, singleLine = true) },
-            confirmButton = { TextButton(enabled = nome.isNotBlank(), onClick = { Equalizador.salvarPreset(nome.trim()); salvando = false }) { Text("Salvar") } },
-            dismissButton = { TextButton(onClick = { salvando = false }) { Text("Cancelar") } },
+            confirmButton = { TextButton(shape = RectangleShape, enabled = nome.isNotBlank(), onClick = { Equalizador.salvarPreset(nome.trim()); salvando = false }) { Text("Salvar") } },
+            dismissButton = { TextButton(shape = RectangleShape, onClick = { salvando = false }) { Text("Cancelar") } },
         )
     }
 }
@@ -158,7 +159,7 @@ private fun CartaoBanda(numero: Int, banda: Banda, onMudar: (Banda) -> Unit, onR
                 TipoFiltro.entries.forEachIndexed { i, t ->
                     SegmentedButton(
                         selected = banda.tipo == t, onClick = { onMudar(banda.copy(tipo = t)) },
-                        shape = SegmentedButtonDefaults.itemShape(i, TipoFiltro.entries.size),
+                        shape = RectangleShape,
                     ) { Text(t.nome, style = MaterialTheme.typography.labelSmall, maxLines = 1) }
                 }
             }

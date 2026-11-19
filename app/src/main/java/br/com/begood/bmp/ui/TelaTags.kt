@@ -46,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -197,11 +198,11 @@ fun TelaTags(vm: AppViewModel, ids: List<Long>, doAlbum: Boolean) {
                     if (!capaMudou && FieldKey.COVER_ART in variados) Text("Capas diferentes", style = MaterialTheme.typography.bodySmall)
                 }
                 Column(Modifier.padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedButton(onClick = { escolherImagem.launch("image/*") }) { Icon(Icons.Filled.Image, null); Text(" Escolher imagem") }
-                    if (d.capa != null) TextButton(onClick = { d = d.copy(capa = null); capaMudou = true }) { Icon(Icons.Filled.Delete, null); Text(" Remover capa") }
+                    OutlinedButton(shape = RectangleShape, onClick = { escolherImagem.launch("image/*") }) { Icon(Icons.Filled.Image, null); Text(" Escolher imagem") }
+                    if (d.capa != null) TextButton(shape = RectangleShape, onClick = { d = d.copy(capa = null); capaMudou = true }) { Icon(Icons.Filled.Delete, null); Text(" Remover capa") }
                 }
             }
-            FilledTonalButton(onClick = { buscando = true }, modifier = Modifier.fillMaxWidth()) {
+            FilledTonalButton(shape = RectangleShape, onClick = { buscando = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.TravelExplore, null); Text("  Atualizar pela internet (artista + álbum)")
             }
             val v = variados
@@ -239,7 +240,7 @@ fun TelaTags(vm: AppViewModel, ids: List<Long>, doAlbum: Boolean) {
                 "No Android 11 ou mais novo, o sistema pede confirmação para alterar os arquivos.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
             )
-            Button(onClick = { salvar() }, enabled = !vm.gravando && !aplicando) { Icon(Icons.Filled.Save, null); Text(" Salvar") }
+            Button(shape = RectangleShape, onClick = { salvar() }, enabled = !vm.gravando && !aplicando) { Icon(Icons.Filled.Save, null); Text(" Salvar") }
         }
     }
 
@@ -326,7 +327,7 @@ private fun DialogoBuscaAlbum(artistaInicial: String, albumInicial: String, onFe
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(artista, { artista = it }, label = { Text("Artista") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(album, { album = it }, label = { Text("Álbum") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Button(onClick = { buscar() }, enabled = !carregando, modifier = Modifier.fillMaxWidth()) { Text("Buscar") }
+                Button(shape = RectangleShape, onClick = { buscar() }, enabled = !carregando, modifier = Modifier.fillMaxWidth()) { Text("Buscar") }
                 when {
                     carregando -> Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                     erro != null -> Text(erro!!, color = MaterialTheme.colorScheme.error)
@@ -346,7 +347,7 @@ private fun DialogoBuscaAlbum(artistaInicial: String, albumInicial: String, onFe
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onFechar) { Text("Fechar") } },
+        dismissButton = { TextButton(shape = RectangleShape, onClick = onFechar) { Text("Fechar") } },
     )
 }
 

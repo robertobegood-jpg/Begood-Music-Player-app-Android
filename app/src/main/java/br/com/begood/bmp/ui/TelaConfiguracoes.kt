@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -90,13 +91,13 @@ fun TelaConfiguracoes(vm: AppViewModel) {
         }
         item {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { runCatching { escolherPasta.launch(null) } }) { Icon(Icons.Filled.CreateNewFolder, null); Text(" Adicionar pasta") }
-                if (vm.pastas.isNotEmpty()) TextButton(onClick = { vm.pastas.toList().forEach(vm::removerPasta) }) { Text("Usar a pasta padrão") }
+                Button(shape = RectangleShape, onClick = { runCatching { escolherPasta.launch(null) } }) { Icon(Icons.Filled.CreateNewFolder, null); Text(" Adicionar pasta") }
+                if (vm.pastas.isNotEmpty()) TextButton(shape = RectangleShape, onClick = { vm.pastas.toList().forEach(vm::removerPasta) }) { Text("Usar a pasta padrão") }
             }
         }
         item {
             Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = { vm.escanear() }, enabled = !vm.escaneando) { Icon(Icons.Filled.Refresh, null); Text(" Escanear agora") }
+                OutlinedButton(shape = RectangleShape, onClick = { vm.escanear() }, enabled = !vm.escaneando) { Icon(Icons.Filled.Refresh, null); Text(" Escanear agora") }
                 if (vm.escaneando) CircularProgressIndicator(Modifier.size(22.dp))
                 Text("${lib?.musicas?.size ?: 0} músicas na biblioteca", style = MaterialTheme.typography.bodySmall)
             }
@@ -157,7 +158,7 @@ fun TelaConfiguracoes(vm: AppViewModel) {
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = { vm.gravarLetrasSalvas() }, enabled = (pendentes ?: 0) > 0 && !vm.gravando) {
+                    Button(shape = RectangleShape, onClick = { vm.gravarLetrasSalvas() }, enabled = (pendentes ?: 0) > 0 && !vm.gravando) {
                         Icon(Icons.Filled.Save, null); Text(" Gravar letras nas músicas")
                     }
                     if (vm.gravando) CircularProgressIndicator(Modifier.size(22.dp))
@@ -208,13 +209,13 @@ private fun ConfigGenius(vm: AppViewModel) {
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { editandoChave = true }) { Icon(Icons.Filled.Edit, null); Text(" Alterar") }
-                TextButton(onClick = { removerChave = true }) { Icon(Icons.Filled.Delete, null); Text(" Remover") }
+                OutlinedButton(shape = RectangleShape, onClick = { editandoChave = true }) { Icon(Icons.Filled.Edit, null); Text(" Alterar") }
+                TextButton(shape = RectangleShape, onClick = { removerChave = true }) { Icon(Icons.Filled.Delete, null); Text(" Remover") }
             }
         } else {
             CampoNovaChave(onSalvar = { chave = it; Preferencias.chaveLastFm = it; vm.aviso = "Chave da Last.fm salva." })
         }
-        TextButton(onClick = { runCatching { abrir.openUri(Genius.SITE_CHAVE) } }) {
+        TextButton(shape = RectangleShape, onClick = { runCatching { abrir.openUri(Genius.SITE_CHAVE) } }) {
             Icon(Icons.AutoMirrored.Filled.OpenInNew, null); Text(" Criar chave grátis na Last.fm")
         }
         Text("Guardado no celular: ${resumo.first} artista(s) e ${resumo.second} música(s).", style = MaterialTheme.typography.bodySmall)
@@ -222,10 +223,10 @@ private fun ConfigGenius(vm: AppViewModel) {
         if (progresso != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CircularProgressIndicator(Modifier.size(22.dp))
             Text(progresso, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-            TextButton(onClick = { vm.pararGenius() }) { Text("Parar") }
+            TextButton(shape = RectangleShape, onClick = { vm.pararGenius() }) { Text("Parar") }
         } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = { vm.baixarGenius() }, enabled = chave.isNotBlank()) { Icon(Icons.Filled.CloudDownload, null); Text(" Baixar para usar offline") }
-            if (resumo.first + resumo.second > 0) TextButton(onClick = { apagar = true }) { Text("Apagar") }
+            Button(shape = RectangleShape, onClick = { vm.baixarGenius() }, enabled = chave.isNotBlank()) { Icon(Icons.Filled.CloudDownload, null); Text(" Baixar para usar offline") }
+            if (resumo.first + resumo.second > 0) TextButton(shape = RectangleShape, onClick = { apagar = true }) { Text("Apagar") }
         }
         Text(
             "Baixa os artistas parecidos de todos os artistas da biblioteca e as músicas parecidas das favoritas e mais tocadas " +
@@ -238,8 +239,8 @@ private fun ConfigGenius(vm: AppViewModel) {
         onDismissRequest = { apagar = false },
         title = { Text("Apagar dados do Genius?") },
         text = { Text("Os dados baixados da Last.fm serão apagados. Dá para baixar de novo depois.") },
-        confirmButton = { TextButton(onClick = { Genius.apagarDados(); apagar = false }) { Text("Apagar") } },
-        dismissButton = { TextButton(onClick = { apagar = false }) { Text("Cancelar") } },
+        confirmButton = { TextButton(shape = RectangleShape, onClick = { Genius.apagarDados(); apagar = false }) { Text("Apagar") } },
+        dismissButton = { TextButton(shape = RectangleShape, onClick = { apagar = false }) { Text("Cancelar") } },
     )
     if (editandoChave) AlertDialog(
         onDismissRequest = { editandoChave = false },
@@ -254,16 +255,16 @@ private fun ConfigGenius(vm: AppViewModel) {
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = { editandoChave = false }) { Text("Cancelar") } },
+        dismissButton = { TextButton(shape = RectangleShape, onClick = { editandoChave = false }) { Text("Cancelar") } },
     )
     if (removerChave) AlertDialog(
         onDismissRequest = { removerChave = false },
         title = { Text("Remover a chave da Last.fm?") },
         text = { Text("Sem a chave, o Genius usa só o gênero e a época. Os dados já baixados continuam guardados.") },
         confirmButton = {
-            TextButton(onClick = { chave = ""; Preferencias.chaveLastFm = ""; removerChave = false; vm.aviso = "Chave removida." }) { Text("Remover") }
+            TextButton(shape = RectangleShape, onClick = { chave = ""; Preferencias.chaveLastFm = ""; removerChave = false; vm.aviso = "Chave removida." }) { Text("Remover") }
         },
-        dismissButton = { TextButton(onClick = { removerChave = false }) { Text("Cancelar") } },
+        dismissButton = { TextButton(shape = RectangleShape, onClick = { removerChave = false }) { Text("Cancelar") } },
     )
 }
 
@@ -299,7 +300,7 @@ private fun CampoNovaChave(onSalvar: (String) -> Unit) {
             },
             modifier = Modifier.fillMaxWidth(),
         )
-        Button(onClick = { onSalvar(limpo.lowercase()); texto = "" }, enabled = valida) {
+        Button(shape = RectangleShape, onClick = { onSalvar(limpo.lowercase()); texto = "" }, enabled = valida) {
             Icon(Icons.Filled.Save, null); Text(" Salvar chave")
         }
     }
