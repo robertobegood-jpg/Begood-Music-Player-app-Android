@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Key
@@ -183,6 +185,8 @@ fun TelaConfiguracoes(vm: AppViewModel) {
 private fun ConfigGenius(vm: AppViewModel) {
     var chave by remember { mutableStateOf(Preferencias.chaveLastFm) }
     var apagar by remember { mutableStateOf(false) }
+    var editandoChave by remember { mutableStateOf(false) }
+    var removerChave by remember { mutableStateOf(false) }
     // Recalcula o resumo quando termina um download ou depois de apagar.
     var resumo by remember { mutableStateOf(Genius.resumo()) }
     LaunchedEffect(vm.geniusProgresso, apagar) { if (vm.geniusProgresso == null) resumo = Genius.resumo() }
@@ -195,12 +199,21 @@ private fun ConfigGenius(vm: AppViewModel) {
                 "e copie a \"API key\". Sem chave, o Genius usa só o gênero e a época.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedTextField(
-            value = chave, onValueChange = { chave = it.trim(); Preferencias.chaveLastFm = chave },
-            singleLine = true, label = { Text("Chave da API da Last.fm") },
-            leadingIcon = { Icon(Icons.Filled.Key, null) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // Proteção: com a chave salva, o campo fica travado (e escondido). Só muda por "Alterar"/"Remover", com confirmação.
+        if (chave.isNotBlank()) {
+            OutlinedTextField(
+                value = mascararChave(chave), onValueChange = {}, readOnly = true, enabled = false,
+                singleLine = true, label = { Text("Chave da API da Last.fm (salva)") },
+                leadingIcon = { Icon(Icons.Filled.Lock, null) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { editandoChave = true }) { Icon(Icons.Filled.Edit, null); Text(" Alterar") }
+                TextButton(onClick = { removerChave = true }) { Icon(Icons.Filled.Delete, null); Text(" Remover") }
+            }
+        } else {
+            CampoNovaChave(onSalvar = { chave = it; Preferencias.chaveLastFm = it; vm.aviso = "Chave da Last.fm salva." })
+        }
         TextButton(onClick = { runCatching { abrir.openUri(Genius.SITE_CHAVE) } }) {
             Icon(Icons.AutoMirrored.Filled.OpenInNew, null); Text(" Criar chave grátis na Last.fm")
         }
@@ -228,4 +241,66 @@ private fun ConfigGenius(vm: AppViewModel) {
         confirmButton = { TextButton(onClick = { Genius.apagarDados(); apagar = false }) { Text("Apagar") } },
         dismissButton = { TextButton(onClick = { apagar = false }) { Text("Cancelar") } },
     )
+    if (editandoChave) AlertDialog(
+        onDismissRequest = { editandoChave = false },
+        title = { Text("Alterar a chave da Last.fm?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("A chave atual (${mascararChave(chave)}) só será trocada se você salvar uma chave nova válida.")
+                CampoNovaChave(onSalvar = {
+                    chave = it; Preferencias.chaveLastFm = it; editandoChave = false
+                    vm.aviso = "Chave da Last.fm alterada."
+                })
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = { editandoChave = false }) { Text("Cancelar") } },
+    )
+    if (removerChave) AlertDialog(
+        onDismissRequest = { removerChave = false },
+        title = { Text("Remover a chave da Last.fm?") },
+        text = { Text("Sem a chave, o Genius usa só o gênero e a época. Os dados já baixados continuam guardados.") },
+        confirmButton = {
+            TextButton(onClick = { chave = ""; Preferencias.chaveLastFm = ""; removerChave = false; vm.aviso = "Chave removida." }) { Text("Remover") }
+        },
+        dismissButton = { TextButton(onClick = { removerChave = false }) { Text("Cancelar") } },
+    )
+}
+
+/** Mostra só o final da chave: "••••••••••••3f9a". */
+private fun mascararChave(c: String) = if (c.length <= 4) "••••" else "•".repeat(12) + c.takeLast(4)
+
+/** As chaves da Last.fm têm 32 caracteres (números e letras de a até f). */
+private val FORMATO_CHAVE = Regex("^[0-9a-fA-F]{32}$")
+
+/**
+ * Campo para digitar/colar uma chave nova. Nada é gravado enquanto digita: só no botão "Salvar",
+ * e só se a chave tiver o formato certo (evita salvar chave cortada ou com letra a mais por engano).
+ */
+@Composable
+private fun CampoNovaChave(onSalvar: (String) -> Unit) {
+    var texto by remember { mutableStateOf("") }
+    val limpo = texto.trim()
+    val valida = FORMATO_CHAVE.matches(limpo)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        OutlinedTextField(
+            value = texto, onValueChange = { texto = it.filterNot(Char::isWhitespace) },
+            singleLine = true, label = { Text("Nova chave da API da Last.fm") },
+            leadingIcon = { Icon(Icons.Filled.Key, null) },
+            isError = limpo.isNotEmpty() && !valida,
+            supportingText = {
+                Text(
+                    when {
+                        limpo.isEmpty() -> "Cole aqui a \"API key\" (32 caracteres)."
+                        valida -> "Formato certo. Toque em Salvar."
+                        else -> "A chave tem 32 caracteres (0-9 e a-f). Esta tem ${limpo.length}."
+                    }
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(onClick = { onSalvar(limpo.lowercase()); texto = "" }, enabled = valida) {
+            Icon(Icons.Filled.Save, null); Text(" Salvar chave")
+        }
+    }
 }
