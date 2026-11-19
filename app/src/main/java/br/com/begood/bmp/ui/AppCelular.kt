@@ -96,6 +96,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -167,6 +168,16 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
     val snack = remember { SnackbarHostState() }
     LaunchedEffect(vm.aviso) { vm.aviso?.let { snack.showSnackbar(it); vm.aviso = null } }
     vm.paraPlaylist?.let { ids -> JanelaAdicionarPlaylist(vm, ids) { vm.paraPlaylist = null } }
+
+    // Guarda a posição das listas de cada tela. Fica acima do "Tocando agora" para não se perder ao abri-lo.
+    val guardado = rememberSaveableStateHolder()
+    // Telas que saíram da pilha (voltou delas) esquecem a posição: reabrir começa do topo.
+    val naPilha = vm.pilha.map { it.toString() }.toSet()
+    val vistas = remember { mutableSetOf<String>() }
+    LaunchedEffect(naPilha) {
+        (vistas - naPilha).forEach { guardado.removeState(it) }
+        vistas.clear(); vistas.addAll(naPilha)
+    }
 
     if (tela == Tela.TocandoAgora) {
         Box(Modifier.fillMaxSize()) {
@@ -241,6 +252,9 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
         },
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
+            // Cada tela (e cada aba) guarda a posição da própria lista: ao voltar, continua de onde estava.
+            val chave = tela?.toString() ?: "aba:${vm.aba}:${vm.artistasDaFaixa}"
+            guardado.SaveableStateProvider(chave) {
             when (tela) {
                 is Tela.AlbumTela -> lib.porChave[tela.chave]?.let { TelaAlbum(it, vm) } ?: SumiuVoltar(vm)
                 is Tela.ArtistaTela -> (if (tela.daFaixa) lib.artistaFaixa(tela.nome) else lib.artista(tela.nome))?.let { TelaGrupo(it, vm, tela.daFaixa) } ?: SumiuVoltar(vm)
@@ -258,6 +272,7 @@ private fun Principal(vm: AppViewModel, lib: Biblioteca) {
                     Aba.Generos -> ListaGrupos(lib.generos) { vm.abrir(Tela.GeneroTela(it.nome)) }
                     Aba.Buscar -> TelaBusca(vm, lib)
                 }
+            }
             }
         }
     }
