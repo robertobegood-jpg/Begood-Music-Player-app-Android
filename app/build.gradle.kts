@@ -34,8 +34,8 @@ android {
         applicationId = "br.com.begood.bmp"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.1.6"
+        versionCode = 9
+        versionName = "1.1.7"
     }
 
     signingConfigs {
@@ -109,4 +109,7 @@ dependencies {
 
     // Leitura e gravação de tags (MP3, FLAC, M4A, OGG...)
     implementation("net.jthink:jaudiotagger:3.0.1")
+
+    // QR Code do Pix (cafezinho)
+    implementation("com.google.zxing:core:3.5.3")
 }

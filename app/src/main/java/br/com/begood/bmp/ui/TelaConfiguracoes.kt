@@ -2,6 +2,7 @@ package br.com.begood.bmp.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudDownload
@@ -168,6 +170,19 @@ fun TelaConfiguracoes(vm: AppViewModel) {
 
         item { HorizontalDivider(Modifier.padding(vertical = 8.dp)); Titulo("Genius (playlists que combinam)") }
         item { ConfigGenius(vm) }
+
+        item {
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Titulo("Apoie o projeto")
+            var cafezinho by remember { mutableStateOf(false) }
+            ListItem(
+                leadingContent = { Icon(Icons.Filled.Coffee, null, tint = MaterialTheme.colorScheme.primary) },
+                headlineContent = { Text("Pague um cafezinho") },
+                supportingContent = { Text("O app é gratuito e sem anúncios. Um Pix de qualquer valor ajuda a manter o projeto.") },
+                modifier = Modifier.clickable { cafezinho = true },
+            )
+            if (cafezinho) DialogoCafezinho { cafezinho = false }
+        }
 
         item {
             HorizontalDivider(Modifier.padding(vertical = 8.dp))

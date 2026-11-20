@@ -3,7 +3,7 @@
 Player para as músicas que estão no próprio celular. Mesmo esquema e visual (âmbar sobre fundo escuro)
 do app da Coleção de CDs (`Sistemas\colecao-de-cds-android`), mas lendo os arquivos locais.
 Pedido original: `Begood Music Player - (B.M.P).md`. Detalhes de uso e técnicos: `README.md`.
-Repositório: github.com/robertobegood-jpg/Begood-Music-Player-app-Android (privado)
+Repositório: github.com/robertobegood-jpg/Begood-Music-Player-app-Android (público)
 
 ## Funções
 - Pastas escolhidas para escanear (sem nenhuma, usa a pasta padrão Music).
