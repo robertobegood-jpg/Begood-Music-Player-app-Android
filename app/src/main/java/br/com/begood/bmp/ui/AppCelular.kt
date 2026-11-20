@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shuffle
@@ -730,6 +731,10 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
             IconButton(onClick = { modo = if (modo == "letra") "capa" else "letra" }) {
                 Icon(Icons.Filled.Lyrics, "Letra", tint = if (modo == "letra") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
             }
+            IconButton(onClick = { modo = if (modo == "estudo") "capa" else "estudo" }) {
+                Icon(Icons.Filled.Tune, "Estudo: velocidade, tom e repetir trecho",
+                    tint = if (modo == "estudo" || resumoEstudo() != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+            }
             IconButton(onClick = { modo = if (modo == "fila") "capa" else "fila" }) {
                 Icon(Icons.AutoMirrored.Filled.QueueMusic, "Fila", tint = if (modo == "fila") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
             }
@@ -780,6 +785,11 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
         }
         // Barra de tempo, controles e por onde o som está saindo.
         val controles = @Composable {
+            // Lembrete do modo estudo ligado (toque para abrir o painel)
+            resumoEstudo()?.let { r ->
+                Text(r, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().clickable { modo = "estudo" }.padding(top = 8.dp))
+            }
             Slider(
                 value = arrastando ?: if (duracao > 0) (posicao.toFloat() / duracao).coerceIn(0f, 1f) else 0f,
                 onValueChange = { arrastando = it },
@@ -802,6 +812,7 @@ private fun TocandoAgora(vm: AppViewModel, onFechar: () -> Unit) {
         val painel = @Composable { mod: Modifier ->
             Column(mod) {
                 when (modo) {
+                    "estudo" -> PainelEstudo(Modifier.weight(1f).fillMaxWidth())
                     "letra" -> {
                         PainelLetra(vm, Modifier.weight(1f).fillMaxWidth()) {
                             // Deitado, título e artista já aparecem ao lado: aqui fica só o menu ⋮ da letra.

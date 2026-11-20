@@ -84,6 +84,8 @@ class PlayerService : MediaLibraryService() {
                 if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) contou = false
             }
         })
+        // Modo estudo (velocidade, tom e repetição A/B) controla este player.
+        Estudo.registrar(player)
         principal.postDelayed(vigia, 5000)
 
         val abrirApp = PendingIntent.getActivity(
@@ -238,6 +240,7 @@ class PlayerService : MediaLibraryService() {
         salvarFila()
         principal.removeCallbacks(vigia)
         audio?.unregisterAudioDeviceCallback(dispositivos)
+        Estudo.soltar(player)
         sessao?.run {
             player.release()
             release()
